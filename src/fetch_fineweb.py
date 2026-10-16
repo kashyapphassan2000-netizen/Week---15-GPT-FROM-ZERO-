@@ -4,11 +4,11 @@ Streams documents from HuggingFaceFW/fineweb-edu (sample-10BT, ODC-By licensed)
 into the same JSONL schema the crawler writes.
 
 Why this exists: RSS feeds only expose each blog's most recent ~10-50 posts, so the
-crawl realistically yields ~300-700 articles (~5-10M tokens). The Day-2 gate wants
->=30M tokens, and 5000 steps x 65k tok/step = 327M tokens seen, i.e. dozens of epochs
-over blog-only data -> memorisation. Mixing in fineweb-edu fixes both.
+crawl yields far less than the plan assumed (measured 2026-10: 1,946 articles = 5.6M
+tokens from 21 feeds). The Day-2 gate wants >=30M tokens, and 5000 steps x 65,536 tok/step
+= 328M tokens seen, i.e. ~58 epochs over blog-only data -> memorisation. fineweb-edu fixes both.
 
-    python src/fetch_fineweb.py --n-docs 40000      # ~40-50M tokens
+    python src/fetch_fineweb.py --n-docs 80000      # ~86M tokens (measured: 40k docs = 42.8M)
 """
 
 import argparse
@@ -22,7 +22,7 @@ OUT = pathlib.Path("data/raw/fineweb.jsonl")
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n-docs", type=int, default=40_000)
+    ap.add_argument("--n-docs", type=int, default=80_000)
     ap.add_argument("--min-chars", type=int, default=600)
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()

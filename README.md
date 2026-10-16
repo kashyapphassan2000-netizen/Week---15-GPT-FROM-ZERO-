@@ -78,7 +78,7 @@ Each day ends with its PASS gate, a commit and a tag (`git tag data-day1 && git 
 ```bash
 python src/crawl.py                  # ~60-70 min, polite 1.5s/request. Interrupted? add --resume
 python src/clean_jsonl.py
-python src/fetch_fineweb.py --n-docs 40000    # required, see "RSS alone is not enough"
+python src/fetch_fineweb.py --n-docs 80000    # required, see "RSS alone is not enough"
 wc -l data/raw/blog_posts.cleaned.jsonl
 ```
 **PASS:** ≥500 cleaned articles, and 5 random records read as clean English.
@@ -151,9 +151,30 @@ Test locally first: `python src/export_to_hub.py --no_push` and then `MODEL_REPO
 
 ## Corpus stats (real run)
 
-_Crawl in progress; this section gets the real per-source article and token counts when it finishes._
+Measured on 2026-10-16 with the exact code in this repo (`crawl.py` → `clean_jsonl.py` → `tokenize_data.py`):
 
-- fineweb-edu top-up, measured: 40,000 docs = **42.8M tokens** (196 MB JSONL)
+| Source | Articles | Tokens (r50k) |
+|---|---:|---:|
+| huggingface.co | 878 | 2.57M |
+| anthropic.com (news + engineering) | 297 | 0.44M |
+| sebastianraschka.com + magazine | 155 | 0.67M |
+| distill.pub | 52 | 0.36M |
+| lilianweng.github.io | 52 | 0.34M |
+| developer.nvidia.com | 100 | 0.28M |
+| research.google | 100 | 0.18M |
+| together.ai | 100 | 0.17M |
+| deepmind.google | 99 | 0.12M |
+| 10 smaller blogs (Gradient, Karpathy, Interconnects, AWS, Huyen, BAIR, MSR, Colah, Jalammar, Lightning) | 108 | 0.46M |
+| openai.com (403 to bots; feed summaries only) | 5 | <0.01M |
+| **Blog total** | **1,946** | **5.6M** (24 MB JSONL) |
+| fineweb-edu, 40k docs | 40,000 | 42.8M |
+| **Mix** | | **48.4M** → 47.4M train / 1.0M val |
+
+- Crawl time: ~70 min at 1.5 s/request. Day-1 gate (≥500 articles): **PASS**. Day-2 gate (≥30M tokens): **PASS only with fineweb**.
+- Cleaning: on top of the regex rules, lines with ≥5 words that repeat in ≥20 documents are dropped. That removed Anthropic's "Related content" teaser block, which was on 262 posts, and Raschka's book plugs, which were on ~90.
+- Doc length: median 668 tokens, p95 ~4k.
+- The default is now **80k fineweb docs (~86M tokens)**. With 48M tokens, the 328M-token run is ~6.8 epochs. With ~92M it is ~3.6 epochs, which is within the range where repeated data is still roughly as good as fresh.
+- The mix is ~6–12% AI-lab blog text, so expect announcement-flavoured *topics* more than a perfect imitation of frontier-lab style. That is the trade-off for not memorising 5.6M tokens.
 
 ---
 
@@ -163,7 +184,7 @@ The PDF had several things that would have broken or misled you. Here is what ch
 
 1. **4 of its 10 RSS URLs are dead.** `anthropic.com/rss.xml`, `ai.meta.com/blog/rss/` and `mistral.ai/news/rss.xml` return 404, and `stability.ai/news?format=rss` returns HTML, not XML. Anthropic has no official feed, so the crawler reads the community mirror `Olshansk/rss-feeds`, which lists anthropic.com URLs, and still fetches each article from anthropic.com (robots.txt allows it). I added 12 more verified feeds.
 2. **OpenAI blocks automated requests (HTTP 403).** Its feed has 1,296 entries, but only one-line summaries. The crawler stops requesting openai.com after 5 refusals and does not try to get around the block. In practice you get roughly 0 OpenAI articles.
-3. **RSS alone cannot meet the Day-2 gate.** Feeds only expose recent posts. The blog crawl yields single-digit millions of tokens, against a gate of ≥30M. A 5000-step run sees 328M tokens, which would be 50+ epochs over blog text alone, so the model would memorise it. `fetch_fineweb.py` tops the corpus up. Documents are shuffled before the train/val split, so val is a mix of both sources.
+3. **RSS alone cannot meet the Day-2 gate.** Feeds only expose recent posts. The real crawl got 1,946 articles = **5.6M tokens**, against a gate of ≥30M. The PDF's "~500MB raw" corpus does not exist via RSS. A 5000-step run sees 328M tokens, which would be 50+ epochs over blog text alone, so the model would memorise it. `fetch_fineweb.py` tops the corpus up. Documents are shuffled before the train/val split, so val is a mix of both sources.
 4. **The model card's "5.2B tokens seen" was wrong.** 16 × 4 × 1024 = 65,536 tok/step, so 5000 steps is **328M** tokens, not 5.2B. The card is now filled in from the checkpoint and can't drift.
 5. **RoPE dtype bug.** Under bf16 autocast, the fp32 RoPE cache would promote q and k to fp32 while v stayed bf16, and `scaled_dot_product_attention` rejects mixed dtypes. The cache is now cast to the activation dtype, and a test covers it.
 6. **Logging bugs in the reference loop.** The printed loss was a *sum* over 10 steps, and tok/s was underestimated by 10×. Both are averaged correctly now.

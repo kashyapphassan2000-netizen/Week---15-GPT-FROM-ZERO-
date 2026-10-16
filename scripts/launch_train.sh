@@ -20,7 +20,7 @@ if [ ! -f data/tokens/train.bin ]; then
     echo "[launch] no token shards found -> building them (crawl + fineweb top-up + tokenize)"
     [ -f data/raw/blog_posts.jsonl ] || python src/crawl.py
     python src/clean_jsonl.py
-    [ -f data/raw/fineweb.jsonl ] || python src/fetch_fineweb.py --n-docs 40000
+    [ -f data/raw/fineweb.jsonl ] || python src/fetch_fineweb.py --n-docs 80000
     python src/tokenize_data.py
 fi
 
