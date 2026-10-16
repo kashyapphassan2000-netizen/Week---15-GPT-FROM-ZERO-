@@ -1,0 +1,16 @@
+# torch is installed separately:
+#   laptop (CPU):  pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   GPU box:       use the image's preinstalled torch (PyTorch 2.x, CUDA 12.x)
+tiktoken==0.7.0
+feedparser==6.0.11
+trafilatura==1.12.2
+requests==2.32.3
+tqdm==4.66.5
+numpy>=1.26,<3
+pyyaml>=6.0
+wandb==0.17.8
+huggingface_hub==0.24.5
+accelerate==0.33.0
+datasets>=2.20
+gradio==4.44.0
+pytest>=8.0
