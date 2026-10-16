@@ -1,0 +1,7 @@
+# configs/gpt_50m_t4.yaml -- Kaggle 2x T4 / 4x T4 (16GB, no bf16, no FlashAttention-2)
+# launch: torchrun --standalone --nproc_per_node=2 src/train.py --config configs/gpt_50m_t4.yaml
+base: configs/gpt_50m.yaml
+batch_size:       8         # per GPU
+grad_accum_steps: 4         # x 2 GPUs x 8 = 64 seqs/step, same as the A100 run (use 2 on 4x T4)
+dtype:            float16   # GradScaler is enabled automatically
+compile:          false     # T4 compile gains are small and the first compile eats Kaggle minutes

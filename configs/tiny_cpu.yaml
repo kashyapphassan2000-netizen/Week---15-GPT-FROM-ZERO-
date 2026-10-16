@@ -1,0 +1,19 @@
+# configs/tiny_cpu.yaml -- laptop smoke test of the full pipeline. NOT a real run.
+base: configs/gpt_50m.yaml
+n_layer:    2
+n_head:     4
+n_embd:     128
+block_size: 128
+batch_size:       4
+grad_accum_steps: 2
+max_steps:        60
+warmup_steps:     10
+lr:               1.0e-3
+min_lr:           1.0e-4
+eval_interval:    20
+eval_iters:       5
+save_interval:    20
+log_interval:     5
+hf_upload_interval: 0
+dtype:   float32
+compile: false
